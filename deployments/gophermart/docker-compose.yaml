@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:18
+    container_name: db_gophermart
+    environment:
+      POSTGRES_USER: gophermart
+      POSTGRES_PASSWORD: gophermart
+      POSTGRES_DB: gophermart
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gophermart -d gophermart"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api_gophermart
+    depends_on:
+      db:
+        condition: service_healthy
+    hostname: web
+    env_file: .env
+    ports:
+      - 8000:8000
+
+volumes:
+  pgdata:

@@ -1,0 +1,13 @@
+version: "2"
+
+sql:
+  - name: auth
+    schema: ./migrations/gophermart
+    queries: ./internal/gophermart/auth/repository/queries.sql
+    engine: postgresql
+    gen:
+      go:
+        package: sqlc
+        out: internal/gophermart/auth/repository/sqlc
+        sql_package: pgx/v5
+        omit_unused_structs: true
