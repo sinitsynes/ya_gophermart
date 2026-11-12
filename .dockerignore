@@ -1,0 +1,15 @@
+.git/
+.github/
+.gitignore
+.golangci-lint.yml
+.zed/
+
+README.md
+justfile
+tmp
+deployments
+
+#binaries
+cmd/gophermart/main
+coverage.out
+.env
