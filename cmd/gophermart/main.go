@@ -35,7 +35,6 @@ func run(ctx context.Context) error {
 		return err
 	}
 	return nil
-
 }
 
 func main() {

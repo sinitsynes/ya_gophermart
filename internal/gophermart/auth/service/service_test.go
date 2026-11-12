@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/sinitsynes/ya_gophermart/config"
@@ -130,7 +131,7 @@ func TestLogin(t *testing.T) {
 				return
 			}
 			login, err := c.ReadToken(got, secretKey)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, test.want, login)
 		})
 	}
