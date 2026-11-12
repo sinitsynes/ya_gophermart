@@ -13,6 +13,7 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/pressly/goose/v3 v3.29.0
+	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.45.0
 	golang.org/x/crypto v0.58.0
 )
@@ -112,7 +113,6 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/sqlc-dev/doubleclick v1.0.0 // indirect
 	github.com/sqlc-dev/sqlc v1.31.1 // indirect
-	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/testcontainers/testcontainers-go v0.45.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect

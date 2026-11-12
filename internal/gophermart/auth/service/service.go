@@ -7,18 +7,21 @@ import (
 	"log/slog"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/sinitsynes/ya_gophermart/config"
 	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/model"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
 	ErrInvalidPassword = errors.New("invalid password")
 	ErrInvalidToken    = errors.New("invalid token")
+	ErrPasswordTooLong = errors.New("password too long")
 )
 
 type Claims struct {
 	jwt.RegisteredClaims
+
 	Login string
 }
 
@@ -40,9 +43,9 @@ func NewAuthService(repo AuthRepository, logger *slog.Logger, secretKey config.A
 func (s *Service) CreateUser(ctx context.Context, userIn model.UserInput) (model.User, error) {
 	hashPassword, err := s.hashPassword(userIn.Password)
 	if err != nil {
-		return model.User{}, fmt.Errorf("failed to hash password: %w", err)
+		return model.User{}, err
 	}
-	user, err := s.repo.CreateUser(ctx, userIn.Login, string(hashPassword))
+	user, err := s.repo.CreateUser(ctx, userIn.Login, hashPassword)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -74,7 +77,7 @@ func (s *Service) generateToken(user model.User, secretKey config.AuthSecretKey)
 
 func (s *Service) ReadToken(tokenString string, secretKey config.AuthSecretKey) (string, error) {
 	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(_ *jwt.Token) (any, error) {
 		return []byte(secretKey), nil
 	})
 	if err != nil {
@@ -90,7 +93,7 @@ func (s *Service) hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
-			return "", fmt.Errorf("password too long: %s", password)
+			return "", ErrPasswordTooLong
 		}
 		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -104,9 +107,9 @@ func (s *Service) checkPassword(hashedPassword, password string) error {
 		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
 			return ErrInvalidPassword
 		case errors.Is(err, bcrypt.ErrHashTooShort):
-			return fmt.Errorf("auth error: hash too short: %s", hashedPassword)
+			return fmt.Errorf("hash too short: %d", len(hashedPassword))
 		default:
-			return fmt.Errorf("auth error: %w", err)
+			return fmt.Errorf("%w", err)
 		}
 	}
 	return nil

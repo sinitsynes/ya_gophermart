@@ -56,5 +56,39 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(token))
+	w.Write([]byte(token)) //nolint:errcheck,gosec
+}
+
+func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Ошибка чтения запроса", http.StatusBadRequest)
+		return
+	}
+	input := new(model.UserInput)
+	if errUnmarshal := json.Unmarshal(bodyBytes, input); errUnmarshal != nil {
+		http.Error(w, "Ошибка декодирования запроса", http.StatusBadRequest)
+		return
+	}
+	ctx := r.Context()
+	_, createErr := h.controller.CreateUser(ctx, *input)
+	if createErr != nil {
+		h.logger.ErrorContext(ctx, "register error", "err", createErr)
+		http.Error(w, "Ошибка регистрации", http.StatusInternalServerError)
+		return
+	}
+	token, authErr := h.controller.Login(ctx, input.Login, input.Password)
+	if authErr != nil {
+		switch {
+		case errors.Is(authErr, service.ErrInvalidPassword):
+			http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
+		default:
+			h.logger.ErrorContext(ctx, "auth error", "err", authErr)
+			http.Error(w, "Ошибка аутентификации", http.StatusUnauthorized)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(token)) //nolint:errcheck,gosec
+
 }

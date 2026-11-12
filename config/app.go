@@ -29,6 +29,6 @@ func Load() (*Config, error) {
 	flag.StringVar(&cfg.Address, "a", cfg.Address, "application address")
 	flag.StringVar(&cfg.Database.DSN, "d", cfg.Database.DSN, "database DSN")
 	flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress, "accrual system address")
-	err := env.Parse(&cfg)
+	err := env.Parse(cfg)
 	return cfg, err
 }

@@ -18,3 +18,9 @@ func NewServer(address string, mux http.Handler) *http.Server {
 		ReadTimeout:       readTimeoutSeconds * time.Second}
 	return &s
 }
+
+func MainMux() *http.ServeMux {
+	mux := http.NewServeMux()
+
+	return mux
+}

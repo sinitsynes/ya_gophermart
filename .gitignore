@@ -25,3 +25,6 @@ vendor/
 
 .env
 cmd/gophermart/main
+
+# Air
+tmp/

@@ -7,7 +7,9 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+
 	"github.com/sinitsynes/ya_gophermart/config"
 	"github.com/sinitsynes/ya_gophermart/migrations"
 )
@@ -43,8 +45,8 @@ func RunMigrations(connString string) error {
 	}
 	defer db.Close()
 
-	if err := goose.Up(db, "gophermart"); err != nil {
-		return fmt.Errorf("%w: %w", ErrRunMigrations, err)
+	if migrationsErr := goose.Up(db, "gophermart"); migrationsErr != nil {
+		return fmt.Errorf("%w: %w", ErrRunMigrations, migrationsErr)
 	}
 	return nil
 }

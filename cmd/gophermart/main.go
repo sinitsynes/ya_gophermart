@@ -7,6 +7,7 @@ import (
 	"github.com/sinitsynes/ya_gophermart/config"
 	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth"
 	"github.com/sinitsynes/ya_gophermart/internal/infra/db"
+	"github.com/sinitsynes/ya_gophermart/internal/infra/httpserver"
 )
 
 func run(ctx context.Context) error {
@@ -25,9 +26,14 @@ func run(ctx context.Context) error {
 		return err
 	}
 	defer pool.Close()
-
-	auth.RegisterAuthService(pool, logger, settings.SecretKey)
-
+	mux := httpserver.MainMux()
+	authMux := auth.NewRouter(auth.RegisterService(pool, logger, settings.SecretKey))
+	mux.Handle("/api/user", authMux)
+	server := httpserver.NewServer(settings.Address, mux)
+	err = server.ListenAndServe()
+	if err != nil {
+		return err
+	}
 	return nil
 
 }

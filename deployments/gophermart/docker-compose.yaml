@@ -18,18 +18,22 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  web:
+  api:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: build/gophermart/Dockerfile
     container_name: api_gophermart
     depends_on:
       db:
         condition: service_healthy
-    hostname: web
-    env_file: .env
+    hostname: api
+    environment:
+      - TZ=Europe/Moscow
+    env_file: ../../.env
     ports:
       - 8000:8000
+    volumes:
+      - ../..:/app
 
 volumes:
   pgdata:

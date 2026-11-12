@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	repoErr "github.com/sinitsynes/ya_gophermart/internal/errs/repository"
 	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/model"
 	sqlc "github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/repository/sqlc"
