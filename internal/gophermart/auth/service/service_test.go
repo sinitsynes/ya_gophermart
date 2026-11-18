@@ -2,137 +2,92 @@ package service_test
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/sinitsynes/ya_gophermart/config"
-	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/model"
 	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/service"
+	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/model"
+	users "github.com/sinitsynes/ya_gophermart/internal/gophermart/users/service"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/sinitsynes/ya_gophermart/internal/testutil"
 )
 
-const (
-	bcryptMaxLength = 72
-)
-
-type mockRepository struct {
-	createFn func(ctx context.Context, username, password string) (model.User, error)
-	getFn    func(ctx context.Context, username string) (model.User, error)
+type mockUserController struct {
+	getUserByLoginFn func(ctx context.Context, username string) (model.User, error)
 }
 
-func (m *mockRepository) CreateUser(ctx context.Context, username, password string) (model.User, error) {
-	return m.createFn(ctx, username, password)
+func (m *mockUserController) GetUserByLogin(ctx context.Context, username string) (model.User, error) {
+	return m.getUserByLoginFn(ctx, username)
 }
 
-func (m *mockRepository) GetUserByLogin(ctx context.Context, username string) (model.User, error) {
-	return m.getFn(ctx, username)
-}
-
-func setupController(repo service.AuthRepository) (*service.Service, config.AuthSecretKey) {
-	secretKey := config.AuthSecretKey(testutil.RandomString(10))
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	return service.NewAuthService(repo, logger, secretKey), secretKey
-}
-
-func TestCreateUser(t *testing.T) {
-	t.Parallel()
-
-	ctx := t.Context()
-
-	tests := []struct {
-		name     string
-		setup    func() service.AuthRepository
-		incoming model.UserInput
-		want     model.User
-		err      error
-	}{
-		{
-			name: "OK",
-			setup: func() service.AuthRepository {
-				return &mockRepository{
-					createFn: func(_ context.Context, login, passwordHash string) (model.User, error) {
-						return model.User{ID: 1, Login: login, PasswordHash: passwordHash}, nil
-					},
-				}
-			},
-			incoming: model.UserInput{Login: "LoginOK", Password: "PasswordOK"},
-			want:     model.User{ID: 1, Login: "LoginOK"},
-			err:      nil,
-		},
-		{
-			name: "PasswordTooLong",
-			setup: func() service.AuthRepository {
-				return &mockRepository{
-					createFn: func(_ context.Context, _, _ string) (model.User, error) {
-						return model.User{}, nil
-					},
-				}
-			},
-			incoming: model.UserInput{Login: "LoginOK", Password: testutil.RandomString(bcryptMaxLength + 1)},
-			want:     model.User{},
-			err:      service.ErrPasswordTooLong,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			repo := test.setup()
-			c, _ := setupController(repo)
-			got, err := c.CreateUser(ctx, test.incoming)
-			if err != nil {
-				assert.ErrorIs(t, err, test.err)
-				return
-			}
-			assert.Equal(t, test.want.Login, got.Login)
-		})
-	}
+func mustHash(t *testing.T, password string) string {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost) // MinCost keeps tests fast
+	require.NoError(t, err)
+	return string(hash)
 }
 
 func TestLogin(t *testing.T) {
 	t.Parallel()
-
 	ctx := t.Context()
 
 	tests := []struct {
-		name     string
-		setup    func() service.AuthRepository
-		incoming model.UserInput
-		want     string
-		err      error
+		name      string
+		user      model.User
+		userErr   error
+		login     string
+		password  string
+		wantLogin string
+		wantErr   error
 	}{
 		{
-			name: "OK",
-			setup: func() service.AuthRepository {
-				return &mockRepository{
-					getFn: func(_ context.Context, _ string) (model.User, error) {
-						passwordHash, _ := bcrypt.GenerateFromPassword([]byte("PasswordOK"), bcrypt.DefaultCost)
-						return model.User{ID: 1, Login: "LoginOK", PasswordHash: string(passwordHash)}, nil
-					},
-				}
-			},
-			incoming: model.UserInput{Login: "LoginOK", Password: "PasswordOK"},
-			want:     "LoginOK",
-			err:      nil,
+			name:      "OK",
+			user:      model.User{ID: 1, Login: "alice", PasswordHash: mustHash(t, "secret")},
+			login:     "alice",
+			password:  "secret",
+			wantLogin: "alice",
+		},
+		{
+			name:     "NOT FOUND",
+			userErr:  users.ErrUserNotFound,
+			login:    "ghost",
+			password: "whatever",
+			wantErr:  users.ErrUserNotFound,
+		},
+		{
+			name:     "WRONG PASSWORD",
+			user:     model.User{ID: 1, Login: "alice", PasswordHash: mustHash(t, "secret")},
+			login:    "alice",
+			password: "nope",
+			wantErr:  service.ErrInvalidPassword,
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			repo := test.setup()
-			c, secretKey := setupController(repo)
-			got, err := c.Login(ctx, test.incoming.Login, test.incoming.Password)
-			if err != nil {
-				assert.ErrorIs(t, err, test.err)
+			secretKey := config.AuthSecretKey(testutil.RandomString(40))
+			svc := service.NewAuthService(&mockUserController{
+				getUserByLoginFn: func(_ context.Context, _ string) (model.User, error) {
+					return test.user, test.userErr
+				},
+			}, nil, secretKey)
+
+			token, err := svc.Login(ctx, test.login, test.password)
+			if test.wantErr != nil {
+				require.ErrorIs(t, err, test.wantErr)
+				assert.Empty(t, token)
 				return
 			}
-			login, err := c.ReadToken(got, secretKey)
 			require.NoError(t, err)
-			assert.Equal(t, test.want, login)
+			got, err := svc.ReadToken(token, secretKey)
+			require.NoError(t, err)
+			assert.Equal(t, test.wantLogin, got)
 		})
 	}
 }

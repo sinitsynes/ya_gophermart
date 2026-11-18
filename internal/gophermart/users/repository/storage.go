@@ -5,9 +5,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	repoErr "github.com/sinitsynes/ya_gophermart/internal/errs/repository"
-	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/model"
-	sqlc "github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/repository/sqlc"
+	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/model"
+	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/repository/sqlc"
 )
 
 type Storage struct {
@@ -27,7 +26,7 @@ func (s *Storage) CreateUser(ctx context.Context, login, passwordHash string) (m
 	}
 	row, err := s.queries.CreateUser(ctx, params)
 	if err != nil {
-		return model.User{}, repoErr.MapError(err)
+		return model.User{}, mapError(err)
 	}
 	return model.User{ID: row.ID, Login: row.Login}, nil
 }
@@ -35,7 +34,7 @@ func (s *Storage) CreateUser(ctx context.Context, login, passwordHash string) (m
 func (s *Storage) GetUserByLogin(ctx context.Context, login string) (model.User, error) {
 	row, err := s.queries.GetUserByLogin(ctx, login)
 	if err != nil {
-		return model.User{}, repoErr.MapError(err)
+		return model.User{}, mapError(err)
 	}
 	return model.User{ID: row.ID, Login: row.Login, PasswordHash: row.PasswordHash}, nil
 }

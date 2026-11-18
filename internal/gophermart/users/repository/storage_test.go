@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	repoErr "github.com/sinitsynes/ya_gophermart/internal/errs/repository"
-	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/model"
-	"github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/repository"
+	repoErr "github.com/sinitsynes/ya_gophermart/internal/err/repository"
+	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/model"
+	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/repository"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -78,7 +78,7 @@ func TestCreateUser(t *testing.T) { //nolint:paralleltest
 				existing := createRandomUser(t, repo)
 				return existing.Login, testutil.RandomString(10)
 			},
-			err: repoErr.ErrUniqueViolation,
+			err: repoErr.ErrAlreadyExists,
 		},
 	}
 	for _, test := range tests { //nolint:paralleltest
