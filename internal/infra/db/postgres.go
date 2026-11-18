@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib" //nolint: revive
 	"github.com/pressly/goose/v3"
 
 	"github.com/sinitsynes/ya_gophermart/config"
