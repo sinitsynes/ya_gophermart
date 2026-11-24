@@ -9,7 +9,9 @@ import (
 type UserIdentifier string
 type AuthSecretKey string
 
-const UserIDKey UserIdentifier = "userId"
+const (
+	UserIDKey UserIdentifier = "userId"
+)
 
 type Config struct {
 	Address              string        `env:"RUN_ADDRESS"`

@@ -42,7 +42,7 @@ func run(ctx context.Context) error {
 	usersH := userHandler.NewHandler(userSvc, authSvc, logger)
 	authH := authHandler.NewHandler(authSvc, logger)
 
-	ordersSvc := orders.RegisterService(pool, logger)
+	ordersSvc := orders.RegisterService(ctx, pool, logger, settings.AccrualSystemAddress)
 	ordersH := ordersHandler.NewHandler(ordersSvc, logger)
 
 	mainRouter := gophermart.MainRouter(logger)
