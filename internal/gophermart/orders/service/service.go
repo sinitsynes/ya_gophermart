@@ -26,16 +26,18 @@ type OrderRepository interface {
 }
 
 type Service struct {
-	repo     OrderRepository
-	userRepo UserRepository
-	logger   *slog.Logger
+	repo           OrderRepository
+	userRepo       UserRepository
+	accrualService *AccrualService
+	logger         *slog.Logger
 }
 
-func NewService(orderRepo OrderRepository, userRepo UserRepository, logger *slog.Logger) *Service {
+func NewService(orderRepo OrderRepository, userRepo UserRepository, accrual *AccrualService, logger *slog.Logger) *Service {
 	return &Service{
-		repo:     orderRepo,
-		userRepo: userRepo,
-		logger:   logger,
+		repo:           orderRepo,
+		userRepo:       userRepo,
+		accrualService: accrual,
+		logger:         logger,
 	}
 }
 
@@ -51,6 +53,7 @@ func (s *Service) CreateOrder(ctx context.Context, order model.CreateOrder) (mod
 		}
 		return model.Order{}, err
 	}
+	go s.accrualService.EnqueueOrder(created.Number)
 	return created, nil
 }
 

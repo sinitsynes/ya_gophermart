@@ -3,15 +3,3 @@
 //   sqlc v1.31.1
 
 package sqlc
-
-import (
-	"time"
-)
-
-type Order struct {
-	ID         int32
-	UserID     int32
-	Number     string
-	Status     int32
-	UploadedAt time.Time
-}

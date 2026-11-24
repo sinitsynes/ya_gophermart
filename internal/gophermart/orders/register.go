@@ -1,6 +1,7 @@
 package orders
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,8 +11,10 @@ import (
 	userRepo "github.com/sinitsynes/ya_gophermart/internal/gophermart/users/repository"
 )
 
-func RegisterService(pool *pgxpool.Pool, logger *slog.Logger) *service.Service {
+func RegisterService(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, accrualUrl string) *service.Service {
 	orderStore := repository.NewStorage(pool)
 	userStore := userRepo.NewStorage(pool)
-	return service.NewService(orderStore, userStore, logger)
+	accrualService := service.NewAccrualService(orderStore, accrualUrl)
+	accrualService.Start(ctx)
+	return service.NewService(orderStore, userStore, accrualService, logger)
 }

@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
 
 const createOrder = `-- name: CreateOrder :one
@@ -21,9 +22,17 @@ type CreateOrderParams struct {
 	Status int32
 }
 
-func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
+type CreateOrderRow struct {
+	ID         int32
+	UserID     int32
+	Number     string
+	Status     int32
+	UploadedAt time.Time
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error) {
 	row := q.db.QueryRow(ctx, createOrder, arg.UserID, arg.Number, arg.Status)
-	var i Order
+	var i CreateOrderRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -35,45 +44,65 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 }
 
 const getOrderByNumber = `-- name: GetOrderByNumber :one
-SELECT id, user_id, number, status, uploaded_at
+SELECT id, user_id, number, status, accrual, uploaded_at
 FROM orders
 WHERE number = $1
 `
 
-func (q *Queries) GetOrderByNumber(ctx context.Context, number string) (Order, error) {
+type GetOrderByNumberRow struct {
+	ID         int32
+	UserID     int32
+	Number     string
+	Status     int32
+	Accrual    *float32
+	UploadedAt time.Time
+}
+
+func (q *Queries) GetOrderByNumber(ctx context.Context, number string) (GetOrderByNumberRow, error) {
 	row := q.db.QueryRow(ctx, getOrderByNumber, number)
-	var i Order
+	var i GetOrderByNumberRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Number,
 		&i.Status,
+		&i.Accrual,
 		&i.UploadedAt,
 	)
 	return i, err
 }
 
 const getOrdersByUser = `-- name: GetOrdersByUser :many
-SELECT id, user_id, number, status, uploaded_at
+SELECT id, user_id, number, status, accrual, uploaded_at
 FROM orders
 WHERE user_id = $1
 ORDER BY uploaded_at DESC
 `
 
-func (q *Queries) GetOrdersByUser(ctx context.Context, userID int32) ([]Order, error) {
+type GetOrdersByUserRow struct {
+	ID         int32
+	UserID     int32
+	Number     string
+	Status     int32
+	Accrual    *float32
+	UploadedAt time.Time
+}
+
+func (q *Queries) GetOrdersByUser(ctx context.Context, userID int32) ([]GetOrdersByUserRow, error) {
 	rows, err := q.db.Query(ctx, getOrdersByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Order
+	var items []GetOrdersByUserRow
 	for rows.Next() {
-		var i Order
+		var i GetOrdersByUserRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Number,
 			&i.Status,
+			&i.Accrual,
 			&i.UploadedAt,
 		); err != nil {
 			return nil, err
@@ -84,4 +113,36 @@ func (q *Queries) GetOrdersByUser(ctx context.Context, userID int32) ([]Order, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateOrdersAccrual = `-- name: UpdateOrdersAccrual :exec
+UPDATE orders AS o
+SET
+    accrual = CASE WHEN upd.has_accrual THEN upd.accrual ELSE NULL END,
+    status = upd.status
+FROM (
+    SELECT
+        UNNEST($1::text[]) AS number,
+        UNNEST($2::int[]) AS status,
+        UNNEST($3::real[]) AS accrual,
+        UNNEST($4::boolean[]) AS has_accrual
+) AS upd
+WHERE o.number = upd.number
+`
+
+type UpdateOrdersAccrualParams struct {
+	Numbers    []string
+	Statuses   []int32
+	Accruals   []float32
+	HasAccrual []bool
+}
+
+func (q *Queries) UpdateOrdersAccrual(ctx context.Context, arg UpdateOrdersAccrualParams) error {
+	_, err := q.db.Exec(ctx, updateOrdersAccrual,
+		arg.Numbers,
+		arg.Statuses,
+		arg.Accruals,
+		arg.HasAccrual,
+	)
+	return err
 }

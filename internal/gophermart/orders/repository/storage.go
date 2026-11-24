@@ -33,6 +33,7 @@ func (s *Storage) GetOrdersByUserID(ctx context.Context, userID int32) ([]model.
 		results[i] = model.Order{
 			Number:     order.Number,
 			Status:     model.OrderStatus(order.Status),
+			Accrual:    order.Accrual,
 			UploadedAt: order.UploadedAt,
 		}
 	}
@@ -43,7 +44,7 @@ func (s *Storage) CreateOrder(ctx context.Context, order model.CreateOrder) (mod
 	created, err := s.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
 		UserID: order.UserID,
 		Number: order.Number,
-		Status: model.ToInt32(order.Status),
+		Status: model.OrderStatusToInt32(order.Status),
 	})
 	if err != nil {
 		return model.Order{}, mapError(err)
@@ -67,6 +68,30 @@ func (s *Storage) GetOrderByNumber(ctx context.Context, orderNumber string) (mod
 		UserID:     order.UserID,
 		Number:     order.Number,
 		Status:     model.OrderStatus(order.Status),
+		Accrual:    order.Accrual,
 		UploadedAt: order.UploadedAt,
 	}, nil
+}
+
+func (s *Storage) UpdateOrdersAccrual(ctx context.Context, processed []model.UpdateOrder) error {
+	numbers := make([]string, len(processed))
+	statuses := make([]int32, len(processed))
+	accruals := make([]float32, len(processed))
+	hasAccrual := make([]bool, len(processed))
+
+	for i, order := range processed {
+		numbers[i] = order.Number
+		statuses[i] = model.OrderStatusToInt32(order.Status)
+		if order.Accrual != nil {
+			accruals[i] = float32(*order.Accrual)
+			hasAccrual[i] = true
+		}
+	}
+
+	return s.queries.UpdateOrdersAccrual(ctx, sqlc.UpdateOrdersAccrualParams{
+		Numbers:    numbers,
+		Statuses:   statuses,
+		Accruals:   accruals,
+		HasAccrual: hasAccrual,
+	})
 }
