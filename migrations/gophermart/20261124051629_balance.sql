@@ -1,0 +1,18 @@
+-- +goose Up
+CREATE TABLE order_accruals (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    order_id INTEGER NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+    accrual REAL
+);
+
+CREATE TABLE order_withdrawals (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    number VARCHAR(255) NOT NULL UNIQUE,
+    sum REAL NOT NULL,
+    processed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- +goose Down
+DROP TABLE order_withdrawals;
+DROP TABLE order_accruals;

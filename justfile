@@ -1,7 +1,7 @@
 set dotenv-load
 
 lint:
-    golangci-lint run
+    golangci-lint run --fix
 
 run:
     docker compose -f deployments/gophermart/docker-compose.yaml up api --build

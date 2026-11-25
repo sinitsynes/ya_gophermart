@@ -1,4 +1,4 @@
-package service
+package validation
 
 func LuhnChecksum(orderNumber string) bool {
 	sum := 0

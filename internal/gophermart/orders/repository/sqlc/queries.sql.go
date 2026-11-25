@@ -22,17 +22,9 @@ type CreateOrderParams struct {
 	Status int32
 }
 
-type CreateOrderRow struct {
-	ID         int32
-	UserID     int32
-	Number     string
-	Status     int32
-	UploadedAt time.Time
-}
-
-func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error) {
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
 	row := q.db.QueryRow(ctx, createOrder, arg.UserID, arg.Number, arg.Status)
-	var i CreateOrderRow
+	var i Order
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -43,10 +35,21 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Creat
 	return i, err
 }
 
+const createOrderAccrual = `-- name: CreateOrderAccrual :exec
+INSERT INTO order_accruals (order_id)
+VALUES ($1)
+`
+
+func (q *Queries) CreateOrderAccrual(ctx context.Context, orderID int32) error {
+	_, err := q.db.Exec(ctx, createOrderAccrual, orderID)
+	return err
+}
+
 const getOrderByNumber = `-- name: GetOrderByNumber :one
-SELECT id, user_id, number, status, accrual, uploaded_at
-FROM orders
-WHERE number = $1
+SELECT o.id, o.user_id, o.number, o.status, oa.accrual, o.uploaded_at
+FROM orders o
+LEFT JOIN order_accruals oa ON o.id = oa.order_id
+WHERE o.number = $1
 `
 
 type GetOrderByNumberRow struct {
@@ -73,10 +76,11 @@ func (q *Queries) GetOrderByNumber(ctx context.Context, number string) (GetOrder
 }
 
 const getOrdersByUser = `-- name: GetOrdersByUser :many
-SELECT id, user_id, number, status, accrual, uploaded_at
-FROM orders
-WHERE user_id = $1
-ORDER BY uploaded_at DESC
+SELECT o.id, o.user_id, o.number, o.status, oa.accrual, o.uploaded_at
+FROM orders o
+LEFT JOIN order_accruals oa ON o.id = oa.order_id
+WHERE o.user_id = $1
+ORDER BY o.uploaded_at DESC
 `
 
 type GetOrdersByUserRow struct {
@@ -115,34 +119,46 @@ func (q *Queries) GetOrdersByUser(ctx context.Context, userID int32) ([]GetOrder
 	return items, nil
 }
 
-const updateOrdersAccrual = `-- name: UpdateOrdersAccrual :exec
-UPDATE orders AS o
-SET
-    accrual = CASE WHEN upd.has_accrual THEN upd.accrual ELSE NULL END,
-    status = upd.status
+const updateOrderAccruals = `-- name: UpdateOrderAccruals :exec
+UPDATE order_accruals AS oa
+SET accrual = CASE WHEN upd.has_accrual THEN upd.accrual ELSE oa.accrual END
 FROM (
     SELECT
-        UNNEST($1::text[]) AS number,
-        UNNEST($2::int[]) AS status,
-        UNNEST($3::real[]) AS accrual,
-        UNNEST($4::boolean[]) AS has_accrual
+        UNNEST($1::int[]) AS order_id,
+        UNNEST($2::real[]) AS accrual,
+        UNNEST($3::boolean[]) AS has_accrual
 ) AS upd
-WHERE o.number = upd.number
+WHERE oa.order_id = upd.order_id
 `
 
-type UpdateOrdersAccrualParams struct {
-	Numbers    []string
-	Statuses   []int32
+type UpdateOrderAccrualsParams struct {
+	OrderIds   []int32
 	Accruals   []float32
 	HasAccrual []bool
 }
 
-func (q *Queries) UpdateOrdersAccrual(ctx context.Context, arg UpdateOrdersAccrualParams) error {
-	_, err := q.db.Exec(ctx, updateOrdersAccrual,
-		arg.Numbers,
-		arg.Statuses,
-		arg.Accruals,
-		arg.HasAccrual,
-	)
+func (q *Queries) UpdateOrderAccruals(ctx context.Context, arg UpdateOrderAccrualsParams) error {
+	_, err := q.db.Exec(ctx, updateOrderAccruals, arg.OrderIds, arg.Accruals, arg.HasAccrual)
+	return err
+}
+
+const updateOrderStatuses = `-- name: UpdateOrderStatuses :exec
+UPDATE orders AS o
+SET status = upd.status
+FROM (
+    SELECT
+        UNNEST($1::int[]) AS id,
+        UNNEST($2::int[]) AS status
+) AS upd
+WHERE o.id = upd.id
+`
+
+type UpdateOrderStatusesParams struct {
+	Ids      []int32
+	Statuses []int32
+}
+
+func (q *Queries) UpdateOrderStatuses(ctx context.Context, arg UpdateOrderStatusesParams) error {
+	_, err := q.db.Exec(ctx, updateOrderStatuses, arg.Ids, arg.Statuses)
 	return err
 }
