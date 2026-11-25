@@ -35,6 +35,11 @@ func (e *rateLimitError) Error() string {
 	return fmt.Sprintf("accrual rate limited, retry after %s", e.retryAfter)
 }
 
+type accrualJob struct {
+	orderID     int32
+	orderNumber string
+}
+
 type AccrualRepository interface {
 	UpdateOrdersAccrual(context.Context, []model.UpdateOrder) error
 }
@@ -43,7 +48,7 @@ type AccrualService struct {
 	repo        AccrualRepository
 	client      *http.Client
 	accrualURL  string
-	inboxCh     chan string
+	inboxCh     chan accrualJob
 	outboxCh    chan model.UpdateOrder
 	mu          sync.Mutex
 	pausedUntil time.Time
@@ -53,14 +58,14 @@ func NewAccrualService(repo AccrualRepository, url string) *AccrualService {
 	return &AccrualService{
 		repo: repo,
 		client: &http.Client{
-			Timeout: 5 * time.Second,
+			Timeout: 5 * time.Second, //nolint:mnd
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 10,
+				MaxIdleConns:        100, //nolint:mnd
+				MaxIdleConnsPerHost: 10,  //nolint:mnd
 			},
 		},
 		accrualURL: strings.TrimRight(url, "/"),
-		inboxCh:    make(chan string, inboxSize),
+		inboxCh:    make(chan accrualJob, inboxSize),
 		outboxCh:   make(chan model.UpdateOrder, updateBatchSize),
 	}
 }
@@ -72,17 +77,17 @@ func (a *AccrualService) Start(ctx context.Context) {
 	go a.flushLoop(ctx)
 }
 
-func (a *AccrualService) EnqueueOrder(orderNumber string) {
-	a.inboxCh <- orderNumber
+func (a *AccrualService) EnqueueOrder(orderID int32, orderNumber string) {
+	a.inboxCh <- accrualJob{orderID: orderID, orderNumber: orderNumber}
 }
 
-func (a *AccrualService) processNumber(ctx context.Context, number string) {
+func (a *AccrualService) processNumber(ctx context.Context, job accrualJob) {
 	for {
 		if err := a.waitIfRateLimited(ctx); err != nil {
 			return
 		}
 
-		accrual, err := a.fetchOrderAccrual(ctx, number)
+		accrual, err := a.fetchOrderAccrual(ctx, job.orderNumber)
 		if err != nil {
 			var rl *rateLimitError
 			switch {
@@ -104,7 +109,8 @@ func (a *AccrualService) processNumber(ctx context.Context, number string) {
 
 		status := model.ParseOrderStatus(accrual.Status)
 		update := model.UpdateOrder{
-			Number:  number,
+			ID:      job.orderID,
+			Number:  job.orderNumber,
 			Status:  status,
 			Accrual: accrual.Points,
 		}
@@ -114,7 +120,7 @@ func (a *AccrualService) processNumber(ctx context.Context, number string) {
 			return
 		}
 
-		if status == model.OrderStatusProcessed || status == model.OrderStatusInvalid {
+		if status == model.OrderProcessed || status == model.OrderInvalid {
 			return
 		}
 		if !a.sleep(ctx, defaultRetryAfter) {
@@ -124,6 +130,9 @@ func (a *AccrualService) processNumber(ctx context.Context, number string) {
 }
 
 func (a *AccrualService) sleep(ctx context.Context, d time.Duration) bool {
+	if d <= 0 {
+		return true
+	}
 	timer := time.NewTimer(d)
 	defer timer.Stop()
 	select {
@@ -139,13 +148,12 @@ func (a *AccrualService) work(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case number := <-a.inboxCh:
-			a.processNumber(ctx, number)
+		case job := <-a.inboxCh:
+			a.processNumber(ctx, job)
 		}
 	}
 }
 
-// flushLoop отправляет пакеты обновлений в репозиторий
 func (a *AccrualService) flushLoop(ctx context.Context) {
 	buffer := make([]model.UpdateOrder, 0, updateBatchSize)
 	ticker := time.NewTicker(updateFlushInterval)
@@ -179,7 +187,6 @@ func (a *AccrualService) flushLoop(ctx context.Context) {
 	}
 }
 
-// fetchOrderAccrual отправляет запрос к сервису расчета баллов лояльности и возвращает результат
 func (a *AccrualService) fetchOrderAccrual(ctx context.Context, orderNumber string) (*model.Accrual, error) {
 	url := a.accrualURL + "/api/orders/" + orderNumber
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -195,13 +202,13 @@ func (a *AccrualService) fetchOrderAccrual(ctx context.Context, orderNumber stri
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		data, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
+		data, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, readErr
 		}
 		accrualResponse := new(model.Accrual)
-		if err := json.Unmarshal(data, accrualResponse); err != nil {
-			return nil, err
+		if unmarshalErr := json.Unmarshal(data, accrualResponse); unmarshalErr != nil {
+			return nil, unmarshalErr
 		}
 		return accrualResponse, nil
 	case http.StatusNoContent:
@@ -214,7 +221,6 @@ func (a *AccrualService) fetchOrderAccrual(ctx context.Context, orderNumber stri
 	}
 }
 
-// pauseFor устанавливает паузу воркера на указанное время, полученное из заголовка Retry-After
 func (a *AccrualService) pauseFor(d time.Duration) {
 	until := time.Now().Add(d)
 	a.mu.Lock()

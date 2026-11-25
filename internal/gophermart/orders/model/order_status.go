@@ -5,65 +5,65 @@ import "strings"
 type OrderStatus int
 
 const (
-	OrderStatusUnknown OrderStatus = iota
-	OrderStatusNew
-	OrderStatusProcessing
-	OrderStatusInvalid
-	OrderStatusProcessed
+	OrderUnknown OrderStatus = iota
+	OrderNew
+	OrderProcessing
+	OrderInvalid
+	OrderProcessed
 )
 
 const (
-	ORDER_UNKNOWN    = "UNKNOWN"
-	ORDER_NEW        = "NEW"
-	ORDER_PROCESSING = "PROCESSING"
-	ORDER_INVALID    = "INVALID"
-	ORDER_PROCESSED  = "PROCESSED"
+	OrderStatusUnknown    = "UNKNOWN"
+	OrderStatusNew        = "NEW"
+	OrderStatusProcessing = "PROCESSING"
+	OrderStatusInvalid    = "INVALID"
+	OrderStatusProcessed  = "PROCESSED"
 )
 
 func (s OrderStatus) String() string {
 	switch s {
-	case OrderStatusUnknown:
-		return ORDER_UNKNOWN
-	case OrderStatusNew:
-		return ORDER_NEW
-	case OrderStatusProcessing:
-		return ORDER_PROCESSING
-	case OrderStatusInvalid:
-		return ORDER_INVALID
-	case OrderStatusProcessed:
-		return ORDER_PROCESSED
+	case OrderUnknown:
+		return OrderStatusUnknown
+	case OrderNew:
+		return OrderStatusNew
+	case OrderProcessing:
+		return OrderStatusProcessing
+	case OrderInvalid:
+		return OrderStatusInvalid
+	case OrderProcessed:
+		return OrderStatusProcessed
 	default:
-		return ORDER_UNKNOWN
+		return OrderStatusUnknown
 	}
 }
 
 func OrderStatusToInt32(status OrderStatus) int32 {
 	switch strings.ToUpper(status.String()) {
-	case ORDER_NEW:
-		return int32(OrderStatusNew)
-	case ORDER_PROCESSING:
-		return int32(OrderStatusProcessing)
-	case ORDER_INVALID:
-		return int32(OrderStatusInvalid)
-	case ORDER_PROCESSED:
-		return int32(OrderStatusProcessed)
+	case OrderStatusNew:
+		return int32(OrderNew)
+	case OrderStatusProcessing:
+		return int32(OrderProcessing)
+	case OrderStatusInvalid:
+		return int32(OrderInvalid)
+	case OrderStatusProcessed:
+		return int32(OrderProcessed)
 	default:
-		return int32(OrderStatusUnknown)
+		return int32(OrderUnknown)
 	}
 }
 
 func ParseOrderStatus(status string) OrderStatus {
 	switch strings.ToUpper(status) {
-	case ORDER_NEW, "REGISTERED":
-		return OrderStatusNew
-	case ORDER_PROCESSING:
-		return OrderStatusProcessing
-	case ORDER_INVALID:
-		return OrderStatusInvalid
-	case ORDER_PROCESSED:
-		return OrderStatusProcessed
+	case OrderStatusNew:
+		return OrderNew
+	case OrderStatusProcessing:
+		return OrderProcessing
+	case OrderStatusInvalid:
+		return OrderInvalid
+	case OrderStatusProcessed:
+		return OrderProcessed
 	default:
-		return OrderStatusUnknown
+		return OrderUnknown
 	}
 }
 

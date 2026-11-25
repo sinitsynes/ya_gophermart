@@ -19,20 +19,20 @@ type UserRepository interface {
 	GetUserByLogin(context.Context, string) (users.User, error)
 }
 
-type OrderRepository interface {
+type Repository interface {
 	GetOrdersByUserID(context.Context, int32) ([]model.Order, error)
 	CreateOrder(context.Context, model.CreateOrder) (model.Order, error)
 	GetOrderByNumber(context.Context, string) (model.Order, error)
 }
 
 type Service struct {
-	repo           OrderRepository
+	repo           Repository
 	userRepo       UserRepository
 	accrualService *AccrualService
 	logger         *slog.Logger
 }
 
-func NewService(orderRepo OrderRepository, userRepo UserRepository, accrual *AccrualService, logger *slog.Logger) *Service {
+func NewService(orderRepo Repository, userRepo UserRepository, accrual *AccrualService, logger *slog.Logger) *Service {
 	return &Service{
 		repo:           orderRepo,
 		userRepo:       userRepo,
@@ -53,7 +53,7 @@ func (s *Service) CreateOrder(ctx context.Context, order model.CreateOrder) (mod
 		}
 		return model.Order{}, err
 	}
-	go s.accrualService.EnqueueOrder(created.Number)
+	go s.accrualService.EnqueueOrder(created.ID, created.Number)
 	return created, nil
 }
 

@@ -60,7 +60,7 @@ func createRandomOrder(t *testing.T, repo *repository.Storage, userID int32) mod
 	r := model.CreateOrder{
 		UserID: userID,
 		Number: testutil.RandomString(10),
-		Status: model.OrderStatusNew,
+		Status: model.OrderNew,
 	}
 	created, err := repo.CreateOrder(t.Context(), r)
 	require.NoError(t, err)
@@ -82,7 +82,7 @@ func TestCreateOrder(t *testing.T) { //nolint:paralleltest
 				return model.CreateOrder{
 					UserID: userID,
 					Number: testutil.RandomString(10),
-					Status: model.OrderStatusNew,
+					Status: model.OrderNew,
 				}
 			},
 			err: nil,
@@ -122,6 +122,8 @@ func TestGetOrdersByUserID(t *testing.T) { //nolint:paralleltest
 				for i := range 25 {
 					created := createRandomOrder(t, repo, userID)
 					orders[i] = model.Order{
+						ID:         created.ID,
+						UserID:     created.UserID,
 						Number:     created.Number,
 						Status:     created.Status,
 						UploadedAt: created.UploadedAt,

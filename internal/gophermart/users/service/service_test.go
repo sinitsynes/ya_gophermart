@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
-	auth "github.com/sinitsynes/ya_gophermart/internal/gophermart/auth/service"
+	"github.com/sinitsynes/ya_gophermart/config"
 	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/model"
 	"github.com/sinitsynes/ya_gophermart/internal/gophermart/users/service"
 	"github.com/sinitsynes/ya_gophermart/internal/testutil"
@@ -33,7 +35,8 @@ func (m *mockRepository) GetUserByLogin(ctx context.Context, username string) (m
 
 func setupController(repo service.UserRepository) *service.Service {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	return service.NewUserService(repo, logger)
+	secretKey := config.AuthSecretKey(testutil.RandomString(40))
+	return service.NewService(repo, secretKey, logger)
 }
 
 func TestCreateUser(t *testing.T) {
@@ -72,7 +75,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			incoming: model.UserInput{Login: "LoginOK", Password: testutil.RandomString(bcryptMaxLength + 1)},
 			want:     model.User{},
-			err:      auth.ErrPasswordTooLong,
+			err:      service.ErrPasswordTooLong,
 		},
 	}
 	for _, test := range tests {
@@ -86,6 +89,72 @@ func TestCreateUser(t *testing.T) {
 				return
 			}
 			assert.Equal(t, test.want.Login, got.Login)
+		})
+	}
+}
+
+func mustHash(t *testing.T, password string) string {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	require.NoError(t, err)
+	return string(hash)
+}
+
+func TestLogin(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	tests := []struct {
+		name      string
+		user      model.User
+		userErr   error
+		login     string
+		password  string
+		wantLogin string
+		wantErr   error
+	}{
+		{
+			name:      "OK",
+			user:      model.User{ID: 1, Login: "alice", PasswordHash: mustHash(t, "secret")},
+			login:     "alice",
+			password:  "secret",
+			wantLogin: "alice",
+		},
+		{
+			name:     "NOT FOUND",
+			userErr:  service.ErrUserNotFound,
+			login:    "ghost",
+			password: "whatever",
+			wantErr:  service.ErrUserNotFound,
+		},
+		{
+			name:     "WRONG PASSWORD",
+			user:     model.User{ID: 1, Login: "alice", PasswordHash: mustHash(t, "secret")},
+			login:    "alice",
+			password: "nope",
+			wantErr:  service.ErrInvalidPassword,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			svc := setupController(&mockRepository{
+				getFn: func(_ context.Context, _ string) (model.User, error) {
+					return test.user, test.userErr
+				},
+			})
+
+			token, err := svc.Login(ctx, test.login, test.password)
+			if test.wantErr != nil {
+				require.ErrorIs(t, err, test.wantErr)
+				assert.Empty(t, token)
+				return
+			}
+			require.NoError(t, err)
+			got, err := svc.ReadToken(token)
+			require.NoError(t, err)
+			assert.Equal(t, test.wantLogin, got)
 		})
 	}
 }
