@@ -58,8 +58,8 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	w.Header().Set("Authorization", token)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(token)) //nolint:errcheck,gosec
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -81,6 +81,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	w.Header().Set("Authorization", token)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(token)) //nolint:errcheck,gosec
 }

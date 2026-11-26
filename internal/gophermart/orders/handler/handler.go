@@ -63,7 +63,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) GetOrdersByUser(w http.ResponseWriter, r *http.Request) {
