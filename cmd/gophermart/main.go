@@ -54,12 +54,12 @@ func run(ctx context.Context) error {
 	r := gophermart.MainRouter()
 
 	r.Route("/api/user", func(r chi.Router) {
-		r.Mount("/", users.NewRouter(usersH))
+		users.RegisterRoutes(r, usersH)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.JWTAuth(userSvc, config.UserIDKey))
-			r.Mount("/", orders.NewRouter(ordersH))
-			r.Mount("/", balance.NewRouter(balanceH))
+			orders.RegisterRoutes(r, ordersH)
+			balance.RegisterRoutes(r, balanceH)
 		})
 	})
 
