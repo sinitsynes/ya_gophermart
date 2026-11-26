@@ -77,6 +77,7 @@ func (h *Handler) GetBalanceByUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка кодирования ответа", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write((res)) //nolint:errcheck,gosec
 }
@@ -102,6 +103,7 @@ func (h *Handler) GetWithdrawalsByUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка кодирования ответа", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write((res)) //nolint:errcheck,gosec
 }

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"net/http"
@@ -11,7 +12,7 @@ func LimitMaxRequestSize(maxSize int64) func(http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-				_, err := io.ReadAll(r.Body)
+				body, err := io.ReadAll(r.Body)
 				if err != nil {
 					if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 						w.WriteHeader(http.StatusRequestEntityTooLarge)
@@ -20,6 +21,8 @@ func LimitMaxRequestSize(maxSize int64) func(http.Handler) http.Handler {
 					w.WriteHeader(http.StatusBadRequest)
 					return
 				}
+				_ = r.Body.Close()
+				r.Body = io.NopCloser(bytes.NewReader(body))
 				next.ServeHTTP(w, r)
 			},
 		)

@@ -66,6 +66,7 @@ func run(ctx context.Context) error {
 	server := httpserver.NewServer(settings.Address, r)
 	errCh := make(chan error, 1)
 	go func() {
+		logger.Info("server started")
 		errCh <- server.ListenAndServe()
 	}()
 

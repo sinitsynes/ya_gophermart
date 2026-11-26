@@ -5,6 +5,6 @@ import "time"
 const ConnectionTimeout time.Duration = 5 * time.Second
 
 type PostgresConfig struct {
-	DSN               string `env:"DATABASE_DSN"`
+	DSN               string `env:"DATABASE_URI"`
 	ConnectionTimeout time.Duration
 }

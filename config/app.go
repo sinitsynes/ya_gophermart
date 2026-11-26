@@ -21,20 +21,23 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	var secretKey string
 	cfg := &Config{
-		Address:              "0.0.0.0:8080",
-		Database:             PostgresConfig{DSN: ""},
+		Address: "0.0.0.0:8080",
+		Database: PostgresConfig{
+			DSN:               "",
+			ConnectionTimeout: ConnectionTimeout,
+		},
 		AccrualSystemAddress: "",
-		SecretKey:            AuthSecretKey(secretKey),
 	}
-	flag.StringVar(&cfg.Address, "a", cfg.Address, "application address")
-	flag.StringVar(&cfg.Database.DSN, "d", cfg.Database.DSN, "database DSN")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress, "accrual system address")
-	flag.Parse()
 	err := env.Parse(cfg)
 	if err != nil {
 		return nil, err
 	}
+
+	flag.StringVar(&cfg.Address, "a", cfg.Address, "application address")
+	flag.StringVar(&cfg.Database.DSN, "d", cfg.Database.DSN, "database DSN")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress, "accrual system address")
+	flag.Parse()
+
 	return cfg, nil
 }

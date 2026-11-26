@@ -46,7 +46,7 @@ func TestRegisterUser(t *testing.T) {
 		body     string
 		setup    func() stubController
 		wantCode int
-		wantBody string
+		wantAuth string
 	}{
 		{
 			name: "OK",
@@ -62,7 +62,7 @@ func TestRegisterUser(t *testing.T) {
 				}
 			},
 			wantCode: http.StatusOK,
-			wantBody: "test-token",
+			wantAuth: "test-token",
 		},
 		{
 			name: "AlreadyExists",
@@ -96,6 +96,7 @@ func TestRegisterUser(t *testing.T) {
 			h.RegisterUser(rr, req)
 
 			assert.Equal(t, test.wantCode, rr.Code)
+			assert.Equal(t, test.wantAuth, rr.Header().Get("Authorization"))
 		})
 	}
 }
@@ -111,7 +112,7 @@ func TestLogin(t *testing.T) {
 		body     string
 		setup    func() stubController
 		wantCode int
-		wantBody string
+		wantAuth string
 	}{
 		{
 			name: "OK",
@@ -126,7 +127,7 @@ func TestLogin(t *testing.T) {
 				}
 			},
 			wantCode: http.StatusOK,
-			wantBody: "jwt-token",
+			wantAuth: "jwt-token",
 		},
 		{
 			name: "InvalidPassword",
@@ -159,6 +160,7 @@ func TestLogin(t *testing.T) {
 			h.Login(rr, req)
 
 			assert.Equal(t, test.wantCode, rr.Code)
+			assert.Equal(t, test.wantAuth, rr.Header().Get("Authorization"))
 		})
 	}
 }
