@@ -10,6 +10,7 @@ import (
 
 func NewRouter(h *handler.Handler) http.Handler {
 	r := chi.NewRouter()
+	r.Post("/login", h.Login)
 	r.Post("/register", h.RegisterUser)
 	return r
 }

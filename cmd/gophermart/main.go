@@ -51,7 +51,7 @@ func run(ctx context.Context) error {
 	balanceSvc := balance.RegisterService(pool, logger)
 	balanceH := balanceHandler.NewHandler(balanceSvc, logger)
 
-	r := gophermart.MainRouter(logger)
+	r := gophermart.MainRouter()
 
 	r.Route("/api/user", func(r chi.Router) {
 		r.Mount("/", users.NewRouter(usersH))

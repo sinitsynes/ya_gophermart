@@ -7,8 +7,7 @@ run:
     docker compose -f deployments/gophermart/docker-compose.yaml up api --build
 
 test:
-    PKGS=$(go list ./... | grep -vE '/cmd|/sqlc|/testutil|/migrations' | paste -sd, -) && \
-    go test -coverpkg="$PKGS" -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -n 1
+    go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -n 1
 
 generate-sqlc:
     go tool sqlc generate

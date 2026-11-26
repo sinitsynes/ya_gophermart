@@ -2,7 +2,7 @@ package repository_test
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 	"testing"
 
@@ -28,19 +28,16 @@ func TestMain(m *testing.M) {
 	ctx := context.Background()
 	newCtr, err := testutil.NewPostgresContainer(ctx, "gophermart")
 	if err != nil {
-		fmt.Println(err) //nolint:forbidigo
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	pgCtr = newCtr
 	dsn, err := testutil.ConnectionString(ctx, pgCtr)
 	if err != nil {
-		fmt.Println(err) //nolint:forbidigo
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	pool, err = pgxpool.New(ctx, dsn)
 	if err != nil {
-		fmt.Println(err) //nolint:forbidigo
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	code := m.Run()

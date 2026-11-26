@@ -39,7 +39,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	if !validation.LuhnChecksum(string(bodyBytes)) {
+	if string(bodyBytes) == "" || !validation.LuhnChecksum(string(bodyBytes)) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
