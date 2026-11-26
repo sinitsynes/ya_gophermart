@@ -76,7 +76,7 @@ func TestGetBalanceByUser(t *testing.T) { //nolint:paralleltest
 	repo := repository.NewStorage(pool)
 
 	tests := []struct {
-		name string
+		name  string
 		setup func(t *testing.T) int32
 		want  model.Balance
 	}{
@@ -184,7 +184,7 @@ func TestGetWithdrawalsByUser(t *testing.T) { //nolint:paralleltest
 			wantLen: 2,
 			check: func(t *testing.T, got []model.Withdrawal) {
 				t.Helper()
-				assert.True(t, !got[0].ProcessedAt.Before(got[1].ProcessedAt))
+				assert.False(t, got[0].ProcessedAt.Before(got[1].ProcessedAt))
 			},
 		},
 	}

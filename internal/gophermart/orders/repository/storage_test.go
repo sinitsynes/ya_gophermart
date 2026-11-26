@@ -33,7 +33,6 @@ func TestMain(m *testing.M) {
 	dsn, err := testutil.ConnectionString(ctx, pgCtr)
 	if err != nil {
 		log.Fatal(err)
-
 	}
 	pool, err = pgxpool.New(ctx, dsn)
 	if err != nil {

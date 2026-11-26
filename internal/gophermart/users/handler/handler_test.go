@@ -89,7 +89,12 @@ func TestRegisterUser(t *testing.T) {
 			t.Parallel()
 			body := []byte(test.body)
 
-			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/user/register", bytes.NewReader(body))
+			req := httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodPost,
+				"/api/user/register",
+				bytes.NewReader(body),
+			)
 			rr := httptest.NewRecorder()
 
 			h := handler.NewHandler(test.setup(), logger)
@@ -153,7 +158,12 @@ func TestLogin(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/user/login", bytes.NewReader([]byte(test.body)))
+			req := httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodPost,
+				"/api/user/login",
+				bytes.NewReader([]byte(test.body)),
+			)
 			rr := httptest.NewRecorder()
 
 			h := handler.NewHandler(test.setup(), logger)

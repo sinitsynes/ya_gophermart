@@ -13,9 +13,9 @@ func TestHashPassword(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
+		name     string
 		password string
-		wantErr error
+		wantErr  error
 	}{
 		{
 			name:     "OK",

@@ -121,7 +121,12 @@ func TestCreateOrder(t *testing.T) {
 				ctx = withUserID(ctx, test.userID.(int32))
 			}
 
-			req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/api/user/orders", bytes.NewBufferString(test.body))
+			req := httptest.NewRequestWithContext(
+				ctx,
+				http.MethodPost,
+				"/api/user/orders",
+				bytes.NewBufferString(test.body),
+			)
 			rr := httptest.NewRecorder()
 
 			h := handler.NewHandler(test.setup(), logger)
