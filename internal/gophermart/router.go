@@ -1,7 +1,6 @@
 package gophermart
 
 import (
-	"log/slog"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,9 +14,9 @@ const (
 	maxRequestSize int64         = 20 * (1 << 10) //nolint: mnd // 20KB
 )
 
-func MainRouter(logger *slog.Logger) *chi.Mux {
+func MainRouter() *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(gophermartMiddleware.Logger(logger))
+	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(requestTimeout))
 	r.Use(gophermartMiddleware.GzipCompressor)
