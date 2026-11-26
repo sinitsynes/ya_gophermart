@@ -3,7 +3,7 @@ package handler_test
 import (
 	"bytes"
 	"context"
-	"encoding/json/v2"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"

@@ -1,7 +1,7 @@
 package model_test
 
 import (
-	"encoding/json/v2"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
