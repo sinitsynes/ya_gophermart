@@ -1,0 +1,43 @@
+version: "2"
+
+overrides:
+  go:
+    overrides:
+      - db_type: "pg_catalog.timestamp"
+        go_type: "time.Time"
+      - db_type: "pg_catalog.int4"
+        go_type: "int32"
+
+sql:
+  - name: users
+    schema: ./migrations/gophermart
+    queries: ./internal/gophermart/users/repository/queries.sql
+    engine: postgresql
+    gen:
+      go:
+        package: sqlc
+        out: internal/gophermart/users/repository/sqlc
+        sql_package: pgx/v5
+        omit_unused_structs: true
+  - name: orders
+    schema: ./migrations/gophermart
+    queries: ./internal/gophermart/orders/repository/queries.sql
+    engine: postgresql
+    gen:
+      go:
+        package: sqlc
+        out: internal/gophermart/orders/repository/sqlc
+        sql_package: pgx/v5
+        omit_unused_structs: true
+        emit_pointers_for_null_types: true
+  - name: balance
+    schema: ./migrations/gophermart
+    queries: ./internal/gophermart/balance/repository/queries.sql
+    engine: postgresql
+    gen:
+      go:
+        package: sqlc
+        out: internal/gophermart/balance/repository/sqlc
+        sql_package: pgx/v5
+        omit_unused_structs: true
+        emit_pointers_for_null_types: true
